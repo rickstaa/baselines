@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.ops.data_flow_ops import StagingArea
 
 from baselines import logger
 from baselines.her.util import (
@@ -85,12 +86,12 @@ class DDPG(object):
         print('stage shapes are {}'.format(list(stage_shapes.values())))
 
         # Create network.
-        with tf.variable_scope(self.scope):
+        with tf.compat.v1.variable_scope(self.scope):
             self.staging_tf = StagingArea(
                 dtypes=[tf.float32 for _ in self.stage_shapes.keys()],
                 shapes=list(self.stage_shapes.values()))
             self.buffer_ph_tf = [
-                tf.placeholder(tf.float32, shape=shape) for shape in self.stage_shapes.values()]
+                tf.compat.v1.placeholder(tf.float32, shape=shape) for shape in self.stage_shapes.values()]
             self.stage_op = self.staging_tf.put(self.buffer_ph_tf)
 
             self._create_network(reuse=reuse)
@@ -310,9 +311,9 @@ class DDPG(object):
         logger.info("Creating a DDPG agent with action space %d x %s..." % (self.dimu, self.max_u))
 
         # running averages
-        with tf.name_scope('o_stats'):
+        with tf.compat.v1.name_scope('o_stats'):
             self.o_stats = RunningMeanStd(epsilon=self.norm_eps, shape=(self.dimo,), default_clip_range=self.norm_clip)
-        with tf.name_scope('g_stats'):
+        with tf.compat.v1.name_scope('g_stats'):
             self.g_stats = RunningMeanStd(epsilon=self.norm_eps, shape=(self.dimg,), default_clip_range=self.norm_clip)
 
         # mini-batch sampling.
@@ -404,7 +405,7 @@ class DDPG(object):
         # load TF variables
         vars = [x for x in self._global_vars('') if 'buffer' not in x.name]
         assert(len(vars) == len(state["tf"]))
-        node = [tf.assign(var, val) for var, val in zip(vars, state["tf"])]
+        node = [tf.compat.v1.assign(var, val) for var, val in zip(vars, state["tf"])]
         self.sess.run(node)
 
     #TODO: add saving logic
